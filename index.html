@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes_Simplifier</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f7ff; }
+        .nav-link { color: #4b5563; text-decoration: none; margin-left: 1rem; font-weight: 500; }
+        .nav-link:hover { color: #2563eb; }
+        .active-link { color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 0.25rem; }
+        
+        #pdf-content-area h1 { font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
+        #pdf-content-area h2 { font-size: 1.25rem; font-weight: bold; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        #pdf-content-area h3 { font-size: 1.125rem; font-weight: bold; margin-top: 1rem; margin-bottom: 0.5rem; }
+        #pdf-content-area p { margin-bottom: 1rem; line-height: 1.6; }
+        #pdf-content-area ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #pdf-content-area ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 1rem; }
+        #pdf-content-area li { margin-bottom: 0.25rem; }
+        #pdf-content-area strong { font-weight: bold; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center pt-10 pb-20">
+
+    <nav class="w-full max-w-5xl flex justify-between items-center px-8 mb-12">
+        <h1 class="text-2xl font-bold text-gray-800">Notes_Simplifier</h1>
+        <div>
+            <a href="#" class="nav-link active-link">Home</a>
+            <a href="#" class="nav-link">Features</a>
+            <a href="#" class="nav-link">About</a>
+            <a href="#" class="nav-link">Contact</a>
+        </div>
+    </nav>
+
+    <div class="bg-white rounded-xl shadow-lg p-10 w-full max-w-5xl text-center min-h-[400px] flex flex-col justify-center items-center transition-all duration-300">
+        
+        <div id="upload-view" class="w-full">
+            <div class="border-2 border-dashed border-gray-300 bg-gray-50 rounded-lg p-16 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-100 transition" onclick="document.getElementById('file-upload').click()">
+                <svg class="w-12 h-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                <p class="text-lg font-medium text-gray-600">Upload your academic PDF here</p>
+                <input type="file" id="file-upload" class="hidden" accept="application/pdf" onchange="handleFileUpload(event)">
+            </div>
+            <p class="mt-8 text-gray-600 font-medium">AI-powered tool to simplify your notes.<br>Upload a PDF to get started.</p>
+        </div>
+
+        <div id="action-view" class="w-full hidden">
+            <div class="bg-gray-50 rounded-lg p-8 border border-gray-200">
+                <div class="flex items-center justify-center space-x-2 mb-8">
+                    <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                    <span id="display-file-name" class="text-lg font-semibold text-gray-800">filename.pdf</span>
+                </div>
+                
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="flex flex-col items-center">
+                        <button onclick="processDocument('summarize')" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition mb-3">Summarizer</button>
+                        <p class="text-xs text-gray-500">Generates a summary to capture main concepts.</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="processDocument('shortern')" class="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition mb-3">ShorterN</button>
+                        <p class="text-xs text-gray-500">Extracts key formulas and definitions for review.</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="toggleExplain()" class="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition mb-3">ExpT (Explain Topic)</button>
+                        <p class="text-xs text-gray-500">Explain specific tricky topics on demand.</p>
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <button onclick="generateQuiz(10, false)" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg shadow transition mb-3">Quiz Me</button>
+                        <p class="text-xs text-gray-500">Test your knowledge with 10 generated MCQs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="result-view" class="w-full hidden flex-col items-center">
+            <div class="flex items-center space-x-2 mb-4">
+                <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                <h2 id="result-title" class="text-xl font-bold text-gray-800">Result.pdf</h2>
+            </div>
+            
+            <div class="w-full h-[600px] bg-gray-800 rounded border-2 border-gray-300 flex items-start justify-center mb-6 overflow-hidden py-4">
+                <div id="pdf-content-area" class="bg-white w-3/4 h-full p-8 overflow-y-auto text-left shadow-xl text-sm text-gray-800">
+                    <h1 class="text-2xl font-bold mb-4 border-b pb-2">Processing Document...</h1>
+                    <p class="text-center text-gray-500 italic mt-10">Please wait while the AI reads your document...</p>
+                </div>
+            </div>
+
+            <div class="flex space-x-4 mb-6">
+                <button id="download-btn" onclick="downloadPDF()" class="hidden bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded shadow transition flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Download as PDF
+                </button>
+                
+                <button id="more-quiz-btn" onclick="generateQuiz(5, true)" class="hidden bg-orange-500 hover:bg-orange-600 text-white font-bold py-2 px-6 rounded shadow transition">
+                    + 5 More Questions
+                </button>
+            </div>
+
+            <div class="flex flex-wrap gap-4 w-full justify-center pt-4 border-t border-gray-200">
+                <button onclick="processDocument('summarize')" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-6 rounded shadow transition">Summarizer</button>
+                <button onclick="processDocument('shortern')" class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-6 rounded shadow transition">ShorterN</button>
+                <button onclick="toggleExplain()" class="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-6 rounded shadow transition">ExpT</button>
+                <button onclick="generateQuiz(10, false)" class="bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-6 rounded shadow transition">New Quiz</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const uploadView = document.getElementById('upload-view');
+        const actionView = document.getElementById('action-view');
+        const resultView = document.getElementById('result-view');
+        const fileNameDisplay = document.getElementById('display-file-name');
+        const resultTitle = document.getElementById('result-title');
+        const contentArea = document.getElementById('pdf-content-area');
+        const downloadBtn = document.getElementById('download-btn');
+        const moreQuizBtn = document.getElementById('more-quiz-btn');
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                fileNameDisplay.textContent = file.name;
+                uploadView.classList.add('hidden');
+                actionView.classList.remove('hidden');
+            }
+        }
+
+        // --- NEW: Dedicated Quiz Logic ---
+        async function generateQuiz(numQs, append = false) {
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please upload a PDF first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", file); 
+            formData.append("num_questions", numQs); // Tell Python how many questions we want
+
+            const backendUrl = `http://localhost:8000/api/quiz`; 
+
+            // If we are NOT appending, we need to show the full loading screen
+            if (!append) {
+                actionView.classList.add('hidden');
+                resultView.classList.remove('hidden');
+                downloadBtn.classList.add('hidden');
+                moreQuizBtn.classList.add('hidden');
+                
+                resultTitle.textContent = "Quiz_" + file.name;
+                contentArea.innerHTML = `
+                    <h1 class="text-2xl font-bold mb-4 border-b pb-2">Crafting your Quiz...</h1>
+                    <div class="flex justify-center items-center h-48">
+                        <p class="text-orange-500 font-semibold animate-pulse">The AI is reading your document and generating ${numQs} tricky questions. Please wait...</p>
+                    </div>
+                `;
+            } else {
+                // If we ARE appending, just change the button text so the user knows it's working
+                moreQuizBtn.textContent = "Loading...";
+                moreQuizBtn.disabled = true;
+                moreQuizBtn.classList.add('opacity-50');
+            }
+
+            try {
+                const response = await fetch(backendUrl, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error(`Server responded with a ${response.status} error.`);
+
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    if (append) {
+                        // Add a dividing line and the new questions to the bottom!
+                        contentArea.innerHTML += `<hr class="my-8 border-gray-400 border-2"/>` + marked.parse(data.result);
+                        
+                        // Reset the button
+                        moreQuizBtn.textContent = "+ 5 More Questions";
+                        moreQuizBtn.disabled = false;
+                        moreQuizBtn.classList.remove('opacity-50');
+                        
+                        // Auto-scroll to the new questions
+                        contentArea.scrollTop = contentArea.scrollHeight;
+                    } else {
+                        // Replace the whole screen for a brand new quiz
+                        contentArea.innerHTML = marked.parse(data.result);
+                        downloadBtn.classList.remove('hidden');
+                        moreQuizBtn.classList.remove('hidden'); // Reveal the "More Questions" button!
+                    }
+                } else {
+                    contentArea.innerHTML = `<p class="text-red-500 font-bold mt-10">Error: ${data.message}</p>`;
+                }
+
+            } catch (error) {
+                contentArea.innerHTML = `<p class="text-red-500 font-bold mt-10">Failed to connect to the server.</p>`;
+                moreQuizBtn.textContent = "+ 5 More Questions";
+            }
+        }
+
+        // Handle Summarizer and ShorterN
+        async function processDocument(action) {
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append("file", file); 
+            const endpoint = action === 'summarize' ? '/api/summarize' : '/api/shortern';
+            const backendUrl = `http://localhost:8000${endpoint}`; 
+
+            actionView.classList.add('hidden');
+            resultView.classList.remove('hidden');
+            downloadBtn.classList.add('hidden'); 
+            moreQuizBtn.classList.add('hidden'); // Hide the quiz button if we are summarizing!
+            
+            resultTitle.textContent = "Processing " + file.name + "...";
+            contentArea.innerHTML = `
+                <h1 class="text-2xl font-bold mb-4 border-b pb-2">Analyzing...</h1>
+                <div class="flex justify-center items-center h-48">
+                    <p class="text-blue-500 font-semibold animate-pulse">The AI is currently processing your document...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(backendUrl, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error(`Server error.`);
+                const data = await response.json();
+                resultTitle.textContent = (action === 'summarize' ? "Summarized_" : "ShorterN_") + file.name;
+                if (data.status === "success") {
+                    contentArea.innerHTML = marked.parse(data.result);
+                    downloadBtn.classList.remove('hidden'); 
+                }
+            } catch (error) {
+                contentArea.innerHTML = `<p class="text-red-500 font-bold mt-10">Failed to connect to the server.</p>`;
+            }
+        }
+
+        // Fully Connected Explain Topic (ExpT) Function
+        async function toggleExplain() {
+            const fileInput = document.getElementById('file-upload');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const topic = prompt("What specific topic or concept do you need explained from this document?");
+            if (!topic) return; 
+
+            const formData = new FormData();
+            formData.append("file", file); 
+            formData.append("topic", topic);
+
+            actionView.classList.add('hidden');
+            resultView.classList.remove('hidden');
+            downloadBtn.classList.add('hidden');
+            moreQuizBtn.classList.add('hidden'); // Hide the quiz button here too
+
+            resultTitle.textContent = "Explaining: " + topic;
+            contentArea.innerHTML = `
+                <h1 class="text-2xl font-bold mb-4 border-b pb-2">Analyzing...</h1>
+                <div class="flex justify-center items-center h-48">
+                    <p class="text-purple-500 font-semibold animate-pulse">The AI is researching "${topic}"...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`http://localhost:8000/api/explain`, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error(`Server error.`);
+                const data = await response.json();
+                if (data.status === "success") {
+                    contentArea.innerHTML = marked.parse(data.result);
+                    downloadBtn.classList.remove('hidden'); 
+                }
+            } catch (error) {
+                contentArea.innerHTML = `<p class="text-red-500 font-bold mt-10">Failed to connect to the server.</p>`;
+            }
+        }
+
+        function downloadPDF() {
+            const element = document.getElementById('pdf-content-area');
+            let filename = resultTitle.textContent.replace('.pdf', '') + '.pdf';
+            const opt = {
+                margin:       0.5,
+                filename:     filename,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2 },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+</html>
