@@ -127,7 +127,10 @@
             }
         }
 
-        // --- NEW: Dedicated Quiz Logic ---
+       // Add a tracker to remember how many questions we've generated!
+        let currentQuestionCount = 0;
+
+        // --- UPDATED: Dedicated Quiz Logic ---
         async function generateQuiz(numQs, append = false) {
             const fileInput = document.getElementById('file-upload');
             const file = fileInput.files[0];
@@ -137,13 +140,22 @@
                 return;
             }
 
+            // If we are starting a brand new quiz, reset the counter to 0
+            if (!append) {
+                currentQuestionCount = 0; 
+            }
+            
+            // Calculate what number the AI should start typing at (e.g., 11)
+            let startingNumber = currentQuestionCount + 1;
+
             const formData = new FormData();
             formData.append("file", file); 
-            formData.append("num_questions", numQs); // Tell Python how many questions we want
+            formData.append("num_questions", numQs); 
+            formData.append("start_num", startingNumber); // Send the starting number to Python!
 
             const backendUrl = `http://localhost:8000/api/quiz`; 
 
-            // If we are NOT appending, we need to show the full loading screen
+            // If we are NOT appending, show the full loading screen
             if (!append) {
                 actionView.classList.add('hidden');
                 resultView.classList.remove('hidden');
@@ -158,7 +170,7 @@
                     </div>
                 `;
             } else {
-                // If we ARE appending, just change the button text so the user knows it's working
+                // If we ARE appending, just change the button text
                 moreQuizBtn.textContent = "Loading...";
                 moreQuizBtn.disabled = true;
                 moreQuizBtn.classList.add('opacity-50');
@@ -171,22 +183,20 @@
                 const data = await response.json();
                 
                 if (data.status === "success") {
+                    // Update our tracker with the new questions we just added!
+                    currentQuestionCount += numQs; 
+
                     if (append) {
-                        // Add a dividing line and the new questions to the bottom!
                         contentArea.innerHTML += `<hr class="my-8 border-gray-400 border-2"/>` + marked.parse(data.result);
                         
-                        // Reset the button
                         moreQuizBtn.textContent = "+ 5 More Questions";
                         moreQuizBtn.disabled = false;
                         moreQuizBtn.classList.remove('opacity-50');
-                        
-                        // Auto-scroll to the new questions
                         contentArea.scrollTop = contentArea.scrollHeight;
                     } else {
-                        // Replace the whole screen for a brand new quiz
                         contentArea.innerHTML = marked.parse(data.result);
                         downloadBtn.classList.remove('hidden');
-                        moreQuizBtn.classList.remove('hidden'); // Reveal the "More Questions" button!
+                        moreQuizBtn.classList.remove('hidden'); 
                     }
                 } else {
                     contentArea.innerHTML = `<p class="text-red-500 font-bold mt-10">Error: ${data.message}</p>`;

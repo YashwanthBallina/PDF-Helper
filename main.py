@@ -62,20 +62,35 @@ async def explain_topic(topic: str = Form(...), file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": f"AI Error: {str(e)}"}
 # === NEW FEATURE: QUIZ GENERATOR ===
+# === NEW FEATURE: QUIZ GENERATOR (WITH SMART NUMBERING) ===
+# === NEW FEATURE: QUIZ GENERATOR (WITH STRICT VERTICAL TEMPLATE) ===
 @app.post("/api/quiz")
-async def generate_quiz(file: UploadFile = File(...), num_questions: int = Form(10)):
+async def generate_quiz(file: UploadFile = File(...), num_questions: int = Form(10), start_num: int = Form(1)):
     try:
         content = await file.read()
         pdf_text = extract_text_from_pdf(content)
         
-        # UPDATED PROMPT: We now strictly enforce vertical formatting for the options!
+        # UPDATED PROMPT: Giving the AI a strict visual template forces it to format correctly.
         prompt = f"""Based on the following text, generate exactly {num_questions} multiple-choice questions. 
-        Each question must have exactly 4 options (A, B, C, D). 
-        IMPORTANT: Format the 4 options vertically, placing each option on its own separate line as a Markdown list. 
-        Do NOT put the options next to each other in a single paragraph.
-        Clearly indicate the correct answer at the bottom of each question. 
-        Format the output neatly using Markdown.
+        You MUST start numbering the questions at number {start_num} and continue sequentially.
         
+        CRITICAL FORMATTING INSTRUCTION: 
+        You MUST follow this exact template for EVERY question. Put a blank empty line between the question, every single option, and the answer.
+
+        TEMPLATE:
+        **{start_num}. [Insert Question Here]**
+
+        A) [Insert Option A]
+
+        B) [Insert Option B]
+
+        C) [Insert Option C]
+
+        D) [Insert Option D]
+
+        *Correct Answer: [Insert Answer]*
+        ---
+
         Text:
         {pdf_text}"""
         
