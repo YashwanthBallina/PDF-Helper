@@ -17,7 +17,7 @@ app.add_middleware(
 
 # 1. Initialize the Gemini Client
 # IMPORTANT: Paste your active API key here!
-client = genai.Client(api_key="AIzaSyAHpB55CiU24FyxGQkdNlMCO406BkyztiU")
+client = genai.Client(api_key="AIzaSyAAPKztST1WgtnUWQ1uKQvtTJNITJLB9Go")
 
 def extract_text_from_pdf(file_bytes):
     """Helper function to read the PDF and pull out all the text."""
