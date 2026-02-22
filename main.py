@@ -61,7 +61,6 @@ async def explain_topic(topic: str = Form(...), file: UploadFile = File(...)):
         return {"status": "success", "topic": topic, "message": "Explanation generated.", "result": response.text}
     except Exception as e:
         return {"status": "error", "message": f"AI Error: {str(e)}"}
-
 # === NEW FEATURE: QUIZ GENERATOR ===
 @app.post("/api/quiz")
 async def generate_quiz(file: UploadFile = File(...), num_questions: int = Form(10)):
@@ -69,8 +68,16 @@ async def generate_quiz(file: UploadFile = File(...), num_questions: int = Form(
         content = await file.read()
         pdf_text = extract_text_from_pdf(content)
         
-        # We tell the AI exactly how many questions to make using the num_questions variable
-        prompt = f"Based on the following text, generate exactly {num_questions} multiple-choice questions. Each question must have exactly 4 options (A, B, C, D) and you must clearly indicate the correct answer at the bottom of each question. Format the output neatly using Markdown.\n\nText:\n{pdf_text}"
+        # UPDATED PROMPT: We now strictly enforce vertical formatting for the options!
+        prompt = f"""Based on the following text, generate exactly {num_questions} multiple-choice questions. 
+        Each question must have exactly 4 options (A, B, C, D). 
+        IMPORTANT: Format the 4 options vertically, placing each option on its own separate line as a Markdown list. 
+        Do NOT put the options next to each other in a single paragraph.
+        Clearly indicate the correct answer at the bottom of each question. 
+        Format the output neatly using Markdown.
+        
+        Text:
+        {pdf_text}"""
         
         response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
         return {"status": "success", "message": f"{num_questions} questions generated.", "result": response.text}
